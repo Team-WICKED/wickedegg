@@ -1,0 +1,57 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2024-05-13T17:14:01+01:00",
+    "name": "Generic Java pro",
+    "author": "sneaky@sneakyhub.com",
+    "description": "Creates a container that runs java.\r\n\r\nJava를 실행하는 컨테이너를 생성합니다.",
+    "features": null,
+    "docker_images": {
+        "Java 8": "ghcr.io/ptero-eggs/yolks:java_8",
+        "Java 11": "ghcr.io/ptero-eggs/yolks:java_11",
+        "Java 16": "ghcr.io/ptero-eggs/yolks:java_16",
+        "Java 17": "ghcr.io/ptero-eggs/yolks:java_17",
+        "Java 21": "ghcr.io/ptero-eggs/yolks:java_21",
+        "Java 22": "ghcr.io/ptero-eggs/yolks:java_22"
+    },
+    "file_denylist": [],
+    "startup": "CPU_THREADS=$CPU_COUNT; if [ -f /sys/fs/cgroup/cpu.max ]; then CG=$(cat /sys/fs/cgroup/cpu.max); if [ \"$(echo $CG | cut -d' ' -f1)\" != \"max\" ]; then CPU_THREADS=$(($(echo $CG | cut -d' ' -f1) / $(echo $CG | cut -d' ' -f2))); fi; elif [ -f /sys/fs/cgroup/cpu/cpu.cfs_quota_us ]; then Q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us); P=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us); if [ \"$Q\" != \"-1\" ]; then CPU_THREADS=$((Q / P)); fi; fi; [ $CPU_THREADS -lt 1 ] && CPU_THREADS=1; PGCT=$((CPU_THREADS * 3 / 10)); [ $PGCT -lt 1 ] && PGCT=1; CGCT=$((CPU_THREADS * 9 / 10)); [ $CGCT -lt 1 ] && CGCT=1; java -Xms$(({{SERVER_MEMORY}} / 2))M -Xmx$(({{SERVER_MEMORY}} * 9 / 10))M -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -XX:ParallelGCThreads=$PGCT -XX:ConcGCThreads=$CGCT -Dterminal.jline=false -Dterminal.ansi=true -jar {{JARFILE}}",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"change this text\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\r\n# Java Installation Script\r\n#\r\n# Server Files: /mnt/server\r\nPROJECT=java\r\n\r\napt update\r\napt install -y curl jq\r\n\r\ncd /mnt/server",
+            "container": "ghcr.io/ptero-eggs/yolks:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "JAR FILE",
+            "description": "실행할 JAR 파일 이름입니다.\r\n\r\nName of the JAR file to run.",
+            "env_variable": "JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:50",
+            "field_type": "text"
+        },
+        {
+            "name": "CPU Count",
+            "description": "서버에 할당된 CPU 스레드 수입니다. GC 스레드 계산에 사용됩니다.\r\n\r\nNumber of CPU threads allocated to the server. Used for GC thread calculation.",
+            "env_variable": "CPU_COUNT",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:128",
+            "field_type": "text"
+        }
+    ]
+}

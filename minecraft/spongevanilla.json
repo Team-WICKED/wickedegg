@@ -1,0 +1,71 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2024-12-24T13:33:52+00:00",
+    "name": "SpongeVanilla pro",
+    "author": "parker@parkervcp.com",
+    "description": "SpongeVanilla is the implementation of the Sponge API on top of Vanilla Minecraft.\r\n\r\nSpongeVanilla는 바닐라 마인크래프트 위에 Sponge API를 구현한 것입니다.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 8": "ghcr.io/ptero-eggs/yolks:java_8",
+        "Java 11": "ghcr.io/ptero-eggs/yolks:java_11",
+        "Java 16": "ghcr.io/ptero-eggs/yolks:java_16",
+        "Java 17": "ghcr.io/ptero-eggs/yolks:java_17",
+        "java 21": "ghcr.io/ptero-eggs/yolks:java_21",
+        "java 22": "ghcr.io/ptero-eggs/yolks:java_22"
+    },
+    "file_denylist": [],
+    "startup": "CPU_THREADS=$CPU_COUNT; if [ -f /sys/fs/cgroup/cpu.max ]; then CG=$(cat /sys/fs/cgroup/cpu.max); if [ \"$(echo $CG | cut -d' ' -f1)\" != \"max\" ]; then CPU_THREADS=$(($(echo $CG | cut -d' ' -f1) / $(echo $CG | cut -d' ' -f2))); fi; elif [ -f /sys/fs/cgroup/cpu/cpu.cfs_quota_us ]; then Q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us); P=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us); if [ \"$Q\" != \"-1\" ]; then CPU_THREADS=$((Q / P)); fi; fi; [ $CPU_THREADS -lt 1 ] && CPU_THREADS=1; PGCT=$((CPU_THREADS * 3 / 10)); [ $PGCT -lt 1 ] && PGCT=1; CGCT=$((CPU_THREADS * 9 / 10)); [ $CGCT -lt 1 ] && CGCT=1; java -Xms$(({{SERVER_MEMORY}} / 2))M -Xmx$(({{SERVER_MEMORY}} * 9 / 10))M -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -XX:ParallelGCThreads=$PGCT -XX:ConcGCThreads=$CGCT -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\",\"find\": {\"server-ip\": \"0.0.0.0\",\"server-port\": \"{{server.build.default.port}}\",\"query.port\": \"{{server.build.default.port}}\",\"sync-chunk-writes\": \"false\",\"view-distance\": \"7\",\"simulation-distance\": \"6\",\"white-list\": \"true\",\"allow-flight\": \"true\",\"online-mode\": \"true\"}}}",
+        "startup": "{\r\n    \"done\": \")! For help, type \",\r\n    \"userInteraction\": [\r\n        \"Go to eula.txt for more info.\"\r\n    ]\r\n}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\r\n# spongeVanilla Installation Script\r\n#\r\n# Server Files: /mnt/server\r\napt update\r\napt install -y jq curl\r\n\r\nmkdir -p /mnt/server\r\ncd /mnt/server\r\n\r\n#Adding .jar when not eding by SERVER_JARFILE\r\nif [[ ! ${SERVER_JARFILE} = *\\.jar ]]; then\r\n  SERVER_JARFILE=\"${SERVER_JARFILE}.jar\"\r\nfi\r\n\r\n## check spongevanilla version and default to recommended if it's invalid\r\nif [ -z ${SV_VERSION} ] || [ \"$(curl -s https://dl-api.spongepowered.org/v1/org.spongepowered/spongevanilla/downloads/${SV_VERSION})\" == \"Unknown version\" ]; then\r\n    echo -e \"defaulting to recommended\"\r\n    SV_VERSION=\"recommended\"\r\nfi\r\n\r\n## handle getting download linsk for sponge\r\nif [ \"${SV_VERSION}\" == \"recommended\" ]; then\r\n    echo -e \"using recommended spongevanilla version\"\r\n    SV_VERSION=$(curl -s https://dl-api.spongepowered.org/v1/org.spongepowered/spongevanilla/downloads/recommended | jq -r '.version')\r\n    echo -e \"found spongevanilla Version ${SV_VERSION}\"\r\n    SV_DL_LINK=$(curl -s https://dl-api.spongepowered.org/v1/org.spongepowered/spongevanilla/downloads/recommended | jq -r '.artifacts.\"\".url')\r\nelif [ \"${SV_VERSION}\" == \"latest\" ]; then\r\n    echo -e \"using latest SpongForge version\"\r\n    SV_VERSION=$(curl -s https://dl-api.spongepowered.org/v1/org.spongepowered/spongevanilla | jq -r '.buildTypes.stable.latest.version')\r\n    echo -e \"found spongevanilla Version ${SV_VERSION}\"\r\nelse\r\n    echo -e \"found spongevanilla Version ${SV_VERSION}\"\r\n    SV_DL_LINK=$(curl -s https://dl-api.spongepowered.org/v1/org.spongepowered/spongevanilla/downloads/${SV_VERSION} | jq -r '.artifacts.\"\".url')\r\nfi\r\n\r\nif [ -f ${SERVER_JARFILE} ] && [ $(sha1sum server.jar | awk '{ print $1 }') == $(curl -s https://dl-api.spongepowered.org/v1/org.spongepowered/spongevanilla/downloads/recommended | jq -r '.artifacts.\"\".sha1') ]; then\r\n    echo -e \"Already have the correct spongevanilla version\"\r\nelse\r\n    echo -e \"Downloading spongevanilla version ${SV_VERSION}\"\r\n    echo -e \"running: curl -s ${SV_DL_LINK} -o /mnt/server/mods/spongevanilla-${SV_VERSION}.jar\"\r\n    curl -s ${SV_DL_LINK} -o /mnt/server/${SERVER_JARFILE}\r\nfi\r\n\r\nif [ ! -f server.properties ]; then\r\n    echo -e \"Downloading MC server.properties\"\r\n    curl -s -o server.properties https://raw.githubusercontent.com/ptero-eggs/game-eggs/main/minecraft/java/server.properties\r\nfi\r\n\r\necho -e \"Install for spongevanilla is complete\"",
+            "container": "ghcr.io/ptero-eggs/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "SpongeVanilla Version",
+            "description": "Example 1.12.2-7.1.6\r\n\r\nIf the version fails it defaults to recommended\r\n\r\n예: 1.12.2-7.1.6\r\n\r\n버전이 실패하면 권장 버전으로 설정됩니다.",
+            "env_variable": "SV_VERSION",
+            "default_value": "recommended",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Server Jar File",
+            "description": "The name of the Jarfile to use when running Mod.\r\n\r\n모드를 실행할 때 사용할 Jar 파일 이름입니다.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "CPU Count",
+            "description": "Number of CPU threads allocated to the server. Used for GC thread calculation.\\r\\n\\r\\n서버에 할당된 CPU 스레드 수입니다. GC 스레드 계산에 사용됩니다.",
+            "env_variable": "CPU_COUNT",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:128",
+            "field_type": "text"
+        }
+    ]
+}

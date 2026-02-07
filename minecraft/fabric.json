@@ -1,0 +1,90 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2023-05-17T23:20:29+01:00",
+    "name": "Fabric pro",
+    "author": "accounts@bofanodes.io",
+    "description": "Fabric is a modular modding toolchain targeting Minecraft 1.14 and above, including snapshots.\r\n\r\n마인크래프트 1.14 이상을 대상으로 하는 모듈식 모딩 툴체인입니다. 스냅샷도 지원합니다.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 8": "ghcr.io/pterodactyl/yolks:java_8",
+        "Java 11": "ghcr.io/pterodactyl/yolks:java_11",
+        "Java 16": "ghcr.io/pterodactyl/yolks:java_16",
+        "Java 17": "ghcr.io/pterodactyl/yolks:java_17",
+        "Java 18": "ghcr.io/pterodactyl/yolks:java_18"
+    },
+    "file_denylist": [],
+    "startup": "CPU_THREADS=$CPU_COUNT; if [ -f /sys/fs/cgroup/cpu.max ]; then CG=$(cat /sys/fs/cgroup/cpu.max); if [ \"$(echo $CG | cut -d' ' -f1)\" != \"max\" ]; then CPU_THREADS=$(($(echo $CG | cut -d' ' -f1) / $(echo $CG | cut -d' ' -f2))); fi; elif [ -f /sys/fs/cgroup/cpu/cpu.cfs_quota_us ]; then Q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us); P=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us); if [ \"$Q\" != \"-1\" ]; then CPU_THREADS=$((Q / P)); fi; fi; [ $CPU_THREADS -lt 1 ] && CPU_THREADS=1; PGCT=$((CPU_THREADS * 3 / 10)); [ $PGCT -lt 1 ] && PGCT=1; CGCT=$((CPU_THREADS * 9 / 10)); [ $CGCT -lt 1 ] && CGCT=1; java -Xms$(({{SERVER_MEMORY}} / 2))M -Xmx$(({{SERVER_MEMORY}} * 9 / 10))M -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -XX:ParallelGCThreads=$PGCT -XX:ConcGCThreads=$CGCT -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\",\"find\": {\"server-ip\": \"0.0.0.0\",\"enable-query\": \"true\",\"server-port\": \"{{server.build.default.port}}\",\"sync-chunk-writes\": \"false\",\"view-distance\": \"7\",\"simulation-distance\": \"6\",\"white-list\": \"true\",\"allow-flight\": \"true\",\"online-mode\": \"true\"}}}",
+        "startup": "{\r\n    \"done\": \")! For help, type \",\r\n    \"userInteraction\": [\r\n        \"Go to eula.txt for more info.\"\r\n    ]\r\n}",
+        "logs": "{\r\n    \"custom\": false,\r\n    \"location\": \"logs/latest.log\"\r\n}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\r\n# Fabric MC Installation Script\r\n#\r\n# Server Files: /mnt/server\r\napt update\r\napt install -y curl jq unzip dos2unix wget\r\nmkdir -p /mnt/server\r\ncd /mnt/server\r\n\r\n# Enable snapshots\r\nif [ -z \"$MC_VERSION\" ] || [ \"$MC_VERSION\" == \"latest\" ]; then\r\n  MC_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/game | jq -r '.[] | select(.stable== true )|.version' | head -n1)\r\nelif [ \"$MC_VERSION\" == \"snapshot\" ]; then\r\n  MC_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/game | jq -r '.[] | select(.stable== false )|.version' | head -n1)\r\nfi\r\n\r\nif [ -z \"$FABRIC_VERSION\" ] || [ \"$FABRIC_VERSION\" == \"latest\" ]; then\r\n  FABRIC_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/installer | jq -r '.[0].version')\r\nfi\r\n\r\nif [ -z \"$LOADER_VERSION\" ] || [ \"$LOADER_VERSION\" == \"latest\" ]; then\r\n  LOADER_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/loader | jq -r '.[] | select(.stable== true )|.version' | head -n1)\r\nelif [ \"$LOADER_VERSION\" == \"snapshot\" ]; then\r\n  LOADER_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/loader | jq -r '.[] | select(.stable== false )|.version' | head -n1)\r\nfi\r\n\r\nwget -O fabric-installer.jar https://maven.fabricmc.net/net/fabricmc/fabric-installer/$FABRIC_VERSION/fabric-installer-$FABRIC_VERSION.jar\r\njava -jar fabric-installer.jar server -mcversion $MC_VERSION -loader $LOADER_VERSION -downloadMinecraft\r\nmv server.jar minecraft-server.jar\r\nmv fabric-server-launch.jar server.jar\r\necho \"serverJar=minecraft-server.jar\" > fabric-server-launcher.properties\r\necho -e \"Install Complete\"",
+            "container": "openjdk:11-jdk-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server Jar File",
+            "description": "The name of the server jarfile to run the server with.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Minecraft Version",
+            "description": "The version of Minecraft to install. Use \"latest\" to install the latest version, or use \"snapshot\" to install the latest snapshot.",
+            "env_variable": "MC_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|between:3,15",
+            "field_type": "text"
+        },
+        {
+            "name": "Fabric Version",
+            "description": "The version of Fabric to install.",
+            "env_variable": "FABRIC_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|between:3,15",
+            "field_type": "text"
+        },
+        {
+            "name": "Fabric Loader Version",
+            "description": "The version of Fabric Loader to install.",
+            "env_variable": "LOADER_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|between:3,15",
+            "field_type": "text"
+        },
+        {
+            "name": "CPU Count",
+            "description": "Number of CPU threads allocated to the server. Used for GC thread calculation.\\r\\n\\r\\n서버에 할당된 CPU 스레드 수입니다. GC 스레드 계산에 사용됩니다.",
+            "env_variable": "CPU_COUNT",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:128",
+            "field_type": "text"
+        }
+    ]
+}

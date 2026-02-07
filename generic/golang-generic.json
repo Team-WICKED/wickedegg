@@ -1,0 +1,52 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2022-07-25T14:20:37-04:00",
+    "name": "golang generic pro",
+    "author": "parker@parkervcp.com",
+    "description": "A generic golang egg that compiles the application and saves an executable\r\n\r\nMeant to be customized before it is used.\r\n\r\n애플리케이션을 컴파일하고 실행 파일을 저장하는 일반 golang egg입니다.\r\n\r\n사용 전에 사용자 정의가 필요합니다.",
+    "features": null,
+    "docker_images": {
+        "Golang Latest": "ghcr.io/ptero-eggs/yolks:golang"
+    },
+    "file_denylist": [],
+    "startup": "./${EXECUTABLE}",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"change this part\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\r\n# golang generic package\r\n\r\n\r\nif [ ! -d /mnt/server/ ]; then\r\n    mkdir -p /mnt/server/\r\nfi\r\n\r\ncd /mnt/server\r\n\r\nif [ -f go.mod ]; then\r\n    go mod download\r\nfi\r\n\r\ngo build -o ${EXECUTABLE}\r\n\r\necho \"Build complete\"",
+            "container": "ghcr.io/ptero-eggs/yolks:golang",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Go Package",
+            "description": "Go package to get and build",
+            "env_variable": "GO_PACKAGE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Executable",
+            "description": "This is the executable from the build.",
+            "env_variable": "EXECUTABLE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|string",
+            "field_type": "text"
+        }
+    ]
+}

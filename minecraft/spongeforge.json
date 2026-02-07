@@ -1,0 +1,71 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2025-11-06T06:47:00+00:00",
+    "name": "SpongeForge pro",
+    "author": "ptero@redbananaofficial.com",
+    "description": "A community-driven open source Minecraft: Java Edition modding platform.\r\n\r\n커뮤니티 주도의 오픈소스 마인크래프트: 자바 에디션 모딩 플랫폼입니다.",
+    "features": [
+        "eula",
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 8": "ghcr.io/ptero-eggs/yolks:java_8",
+        "Java 11": "ghcr.io/ptero-eggs/yolks:java_11",
+        "Java 16": "ghcr.io/ptero-eggs/yolks:java_16",
+        "Java 17": "ghcr.io/ptero-eggs/yolks:java_17",
+        "java 21": "ghcr.io/ptero-eggs/yolks:java_21",
+        "java 22": "ghcr.io/ptero-eggs/yolks:java_22"
+    },
+    "file_denylist": [],
+    "startup": "CPU_THREADS=$CPU_COUNT; if [ -f /sys/fs/cgroup/cpu.max ]; then CG=$(cat /sys/fs/cgroup/cpu.max); if [ \"$(echo $CG | cut -d' ' -f1)\" != \"max\" ]; then CPU_THREADS=$(($(echo $CG | cut -d' ' -f1) / $(echo $CG | cut -d' ' -f2))); fi; elif [ -f /sys/fs/cgroup/cpu/cpu.cfs_quota_us ]; then Q=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us); P=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us); if [ \"$Q\" != \"-1\" ]; then CPU_THREADS=$((Q / P)); fi; fi; [ $CPU_THREADS -lt 1 ] && CPU_THREADS=1; PGCT=$((CPU_THREADS * 3 / 10)); [ $PGCT -lt 1 ] && PGCT=1; CGCT=$((CPU_THREADS * 9 / 10)); [ $CGCT -lt 1 ] && CGCT=1; java -Xms$(({{SERVER_MEMORY}} / 2))M -Xmx$(({{SERVER_MEMORY}} * 9 / 10))M -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -XX:ParallelGCThreads=$PGCT -XX:ConcGCThreads=$CGCT -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true -jar {{SERVER_JARFILE}} $(if [ -f unix_args.txt ]; then printf \"@unix_args.txt\"; fi)",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\",\"find\": {\"server-ip\": \"0.0.0.0\",\"server-port\": \"{{server.build.default.port}}\",\"query.port\": \"{{server.build.default.port}}\",\"sync-chunk-writes\": \"false\",\"view-distance\": \"7\",\"simulation-distance\": \"6\",\"white-list\": \"true\",\"allow-flight\": \"true\",\"online-mode\": \"true\"}}}",
+        "startup": "{\r\n    \"done\": \")! For help, type \",\r\n    \"userInteraction\": [\r\n        \"Go to eula.txt for more info.\"\r\n    ]\r\n}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\r\n# SpongeForge Installation Script\r\n#\r\n# Server Files: /mnt/server\r\napt update\r\napt install -y jq curl\r\n\r\nmkdir -p /mnt/server\r\nmkdir -p /mnt/server/mods\r\ncd /mnt/server\r\n\r\n# Create spongeForge download URL using SF_MC_VERSION variable\r\nif [[ \"${SF_MC_VERSION}\" == *-* ]]; then\r\n    echo -e \"Using specific SpongeForge version: ${SF_MC_VERSION}\"\r\n    SF_VERSION=${SF_MC_VERSION}\r\nelse\r\n    echo -e \"Fetching recommended SpongeForge version for Minecraft ${SF_MC_VERSION}\"\r\n    API_URL=\"https://dl-api-new.spongepowered.org/api/v2/groups/org.spongepowered/artifacts/spongeforge/latest?tags=minecraft:${SF_MC_VERSION}&recommended=true\"\r\n    SF_VERSION=$(curl -s ${API_URL} | jq -r '.coordinates.version // empty') || true\r\n    if [[ -z \"${SF_VERSION}\" ]]; then\r\n        echo -e \"Attempting to fetch latest SpongeForge version for Minecraft ${SF_MC_VERSION}\"\r\n        API_URL=\"https://dl-api-new.spongepowered.org/api/v2/groups/org.spongepowered/artifacts/spongeforge/latest?tags=minecraft:${SF_MC_VERSION}&recommended=false\"\r\n        SF_VERSION=$(curl -s ${API_URL} | jq -r '.coordinates.version // empty') || true\r\n    fi\r\n    if [[ -z \"${SF_VERSION}\" ]]; then\r\n        echo -e \"Error: Failed to retrieve SpongeForge version for Minecraft ${SF_MC_VERSION}\"\r\n        exit 1\r\n    fi\r\n    echo -e \"Found SpongeForge version: ${SF_VERSION}\"\r\nfi\r\n\r\n# Handle older versions legacy-transfer\r\nMC_VERSION=${SF_VERSION%%-*}\r\nSF_BASE_URL=\"https://repo.spongepowered.org/repository/maven-releases\"\r\nif [[ \"${MC_VERSION}\" == \"1.12.2\" || $(printf '%s\\n' \"$MC_VERSION\" \"1.12\" | sort -V | head -n1) == \"$MC_VERSION\" ]]; then\r\n    SF_BASE_URL=\"https://repo.spongepowered.org/repository/legacy-transfer\"\r\nfi\r\n\r\n# Download SpongeForge\r\nif [[ $(printf '%s\\n' \"$MC_VERSION\" \"1.16.5\" | sort -V | tail -n1) == \"$MC_VERSION\" || \"${MC_VERSION}\" == \"1.21.4\" ]]; then\r\n    SF_DL_LINK=\"${SF_BASE_URL}/org/spongepowered/spongeforge/${SF_VERSION}/spongeforge-${SF_VERSION}-universal.jar\"\r\nelse\r\n    SF_DL_LINK=\"${SF_BASE_URL}/org/spongepowered/spongeforge/${SF_VERSION}/spongeforge-${SF_VERSION}.jar\"\r\nfi\r\n\r\necho -e \"Downloading SpongeForge: ${SF_DL_LINK}\"\r\ncurl -L --retry 5 --retry-delay 5 -o /mnt/server/mods/spongeforge-${SF_VERSION}.jar ${SF_DL_LINK} || {\r\n    echo -e \"Error: SpongeForge download failed. Attempted URL: ${SF_DL_LINK}\"\r\n    exit 1\r\n}\r\n\r\n# Forge version mappings for older versions\r\ndeclare -A FORGE_VERSIONS=(\r\n    [\"1.12.2\"]=\"14.23.5.2838\"\r\n    [\"1.12.1\"]=\"14.22.1.2480\"\r\n    [\"1.11.2\"]=\"13.20.1.2476\"\r\n    [\"1.10.2\"]=\"12.18.3.2477\"\r\n    [\"1.9.4\"]=\"12.17.0.1968\"\r\n    [\"1.8.9\"]=\"11.15.1.1890-1.8.9\"\r\n)\r\n\r\n# Determine Forge version\r\nif [[ -n \"${FORGE_VERSIONS[${MC_VERSION}]}\" ]]; then\r\n    FORGE_VERSION=${FORGE_VERSIONS[${MC_VERSION}]}\r\nelse\r\n    IFS='-' read -ra VERSION_PARTS <<< \"$SF_VERSION\"\r\n    FORGE_VERSION=${VERSION_PARTS[1]:-${VERSION_PARTS[2]}}\r\nfi\r\n\r\n# Use unix_args.txt for versions 1.17 and above\r\nif printf '%s\\n' \"$MC_VERSION\" \"1.17\" | sort -V | tail -n1 | grep -q \"$MC_VERSION\"; then\r\n    echo -e \"Using unix_args.txt for versions 1.17 and above.\"\r\n    ln -sf libraries/net/minecraftforge/forge/${MC_VERSION}-${FORGE_VERSION}/unix_args.txt unix_args.txt\r\nfi\r\n\r\n# Download Forge\r\necho -e \"Downloading Forge for Minecraft ${MC_VERSION}\"\r\nFORGE_DL_LINK=\"https://maven.minecraftforge.net/net/minecraftforge/forge/${MC_VERSION}-${FORGE_VERSION}/forge-${MC_VERSION}-${FORGE_VERSION}-installer.jar\"\r\n\r\necho -e \"Forge download URL: ${FORGE_DL_LINK}\"\r\ncurl -L --retry 5 --retry-delay 5 -o installer.jar ${FORGE_DL_LINK} || {\r\n    echo -e \"Error: Failed to download Forge installer. URL attempted: ${FORGE_DL_LINK}\"\r\n    exit 1\r\n}\r\n\r\n# Run installer\r\nif ! java -jar installer.jar --installServer; then\r\n    echo -e \"Error: Invalid or corrupt Forge installer. URL: ${FORGE_DL_LINK}\"\r\n    exit 1\r\nfi\r\nrm installer.jar\r\n\r\n# Locate universal jar\r\nSERVER_JAR_PATH=$(find . -type f -name \"forge-*-universal.jar\" | head -n 1)\r\nif [[ -f \"$SERVER_JAR_PATH\" ]]; then\r\n    echo -e \"Found Forge universal JAR: $SERVER_JAR_PATH\"\r\n    cp \"$SERVER_JAR_PATH\" server.jar\r\n    cp \"$SERVER_JAR_PATH\" \"${SERVER_JAR_PATH}.backup\"\r\nelse\r\n    echo -e \"Error: Universal Forge JAR not found. Installation failed.\"\r\n    exit 1\r\nfi\r\n\r\necho -e \"SpongeForge installation complete.\"",
+            "container": "eclipse-temurin:8-jdk-jammy",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server Jar File",
+            "description": "The name of the Jarfile to use when running Forge Mod.\r\n\r\nForge 모드를 실행할 때 사용할 Jar 파일 이름입니다.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "server.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Spongeforge Minecraft Version",
+            "description": "Either use a full version such as: 1.20.6-50.0.22-11.0.0-RC1633 to fetch an exact version\r\nOr just use the Minecraft version such as: 1.20.6, 1.19.4, etc. to get the recommended version\r\nSupported versions can be found here: https://spongepowered.org/downloads/spongeforge\r\n\r\n정확한 버전(예: 1.20.6-50.0.22-11.0.0-RC1633)을 사용하거나\r\n마인크래프트 버전(예: 1.20.6, 1.19.4 등)만 사용하여 권장 버전을 받을 수 있습니다.\r\n지원되는 버전: https://spongepowered.org/downloads/spongeforge",
+            "env_variable": "SF_MC_VERSION",
+            "default_value": "1.20.6",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:30",
+            "field_type": "text"
+        },
+        {
+            "name": "CPU Count",
+            "description": "Number of CPU threads allocated to the server. Used for GC thread calculation.\\r\\n\\r\\n서버에 할당된 CPU 스레드 수입니다. GC 스레드 계산에 사용됩니다.",
+            "env_variable": "CPU_COUNT",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1|max:128",
+            "field_type": "text"
+        }
+    ]
+}
